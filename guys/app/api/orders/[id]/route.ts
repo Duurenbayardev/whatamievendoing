@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../../lib/mongodb';
-import { ObjectId } from 'mongodb';
+import { ObjectId, UpdateFilter } from 'mongodb';
 
 // GET single order
 export async function GET(
@@ -83,5 +83,51 @@ export async function PUT(
   } catch (error) {
     console.error('Error updating order:', error);
     return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
+  }
+}
+
+// DELETE order
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> | { id: string } }
+) {
+  try {
+    const resolvedParams = await Promise.resolve(params);
+    const orderId = resolvedParams.id;
+    
+    if (!ObjectId.isValid(orderId)) {
+      return NextResponse.json({ error: 'Invalid order ID' }, { status: 400 });
+    }
+    
+    const db = await getDb();
+    const ordersCollection = db.collection('orders');
+    const usersCollection = db.collection('users');
+    
+    // Find the order first to get userId
+    const order = await ordersCollection.findOne({ _id: new ObjectId(orderId) });
+    
+    if (!order) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+    
+    // Delete the order
+    const result = await ordersCollection.deleteOne({ _id: new ObjectId(orderId) });
+    
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+    
+    // Remove order ID from user's orders array if userId exists
+    if (order.userId && ObjectId.isValid(order.userId)) {
+      await usersCollection.updateOne(
+        { _id: new ObjectId(order.userId) },
+        { $pull: { orders: orderId } } as unknown as UpdateFilter<any>
+      );
+    }
+    
+    return NextResponse.json({ message: 'Order deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    return NextResponse.json({ error: 'Failed to delete order' }, { status: 500 });
   }
 }

@@ -8,6 +8,7 @@ export interface Product {
   image: string;
   tags: string[];
   sizes: string[];
+  colors: string[];
   createdAt: string;
 }
 
@@ -26,6 +27,7 @@ export interface Order {
   userId: string;
   productName: string;
   productSize: string;
+  productColor?: string;
   productPrice: number;
   productImage: string;
   productCode?: string;

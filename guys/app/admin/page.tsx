@@ -16,6 +16,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showOrderDeleteConfirm, setShowOrderDeleteConfirm] = useState<string | null>(null);
   // Preset Mongolian tags
   const presetMongolianTags = [
     'Эрэгтэй',
@@ -39,6 +40,26 @@ export default function AdminPage() {
     'Онцлох',
     'Супер хямд',
   ];
+
+  // Preset colors
+  const presetColors = [
+    { name: 'Хар', value: '#000000' },
+    { name: 'Цагаан', value: '#FFFFFF' },
+    { name: 'Саарал', value: '#808080' },
+    { name: 'Улаан', value: '#FF0000' },
+    { name: 'Цэнхэр', value: '#0000FF' },
+    { name: 'Ногоон', value: '#008000' },
+    { name: 'Шар', value: '#FFFF00' },
+    { name: 'Ягаан', value: '#FF00FF' },
+    { name: 'Улбар шар', value: '#FFA500' },
+    { name: 'Хүрэн', value: '#A52A2A' },
+    { name: 'Цайвар цэнхэр', value: '#ADD8E6' },
+    { name: 'Цайвар ягаан', value: '#FFB6C1' },
+    { name: 'Бор', value: '#8B4513' },
+    { name: 'Цайвар ногоон', value: '#90EE90' },
+    { name: 'Мөнгө', value: '#C0C0C0' },
+    { name: 'Алт', value: '#FFD700' },
+  ];
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
@@ -49,7 +70,6 @@ export default function AdminPage() {
   const [deletingTag, setDeletingTag] = useState<string | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
-  const [orderImageLoaded, setOrderImageLoaded] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({
     productCode: '',
     name: '',
@@ -58,7 +78,9 @@ export default function AdminPage() {
     originalPrice: '',
     image: '',
     sizes: 'S,M,L,XL',
+    colors: '',
   });
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -115,6 +137,28 @@ export default function AdminPage() {
     } catch (error) {
       console.error('Error updating order status:', error);
       setMessage('Статус шинэчлэхэд алдаа гарлаа.');
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setMessage('Захиалга амжилттай устгагдлаа.');
+        setShowOrderDeleteConfirm(null);
+        fetchOrders();
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setMessage('Захиалга устгахад алдаа гарлаа. Дахин оролдоно уу.');
+        setTimeout(() => setMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      setMessage('Алдаа гарлаа. Дахин оролдоно уу.');
       setTimeout(() => setMessage(''), 3000);
     }
   };
@@ -224,6 +268,7 @@ export default function AdminPage() {
         image: formData.image,
         tags: selectedTags,
         sizes: formData.sizes.split(',').map((size) => size.trim()).filter(Boolean),
+        colors: selectedColors.length > 0 ? selectedColors : (formData.colors ? formData.colors.split(',').map((color) => color.trim()).filter(Boolean) : []),
       };
 
       if (editingProduct) {
@@ -274,6 +319,7 @@ export default function AdminPage() {
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setSelectedTags(product.tags || []);
+    setSelectedColors(product.colors || []);
     const hasOriginalPrice = product.originalPrice && product.originalPrice > product.price;
     setHasDiscount(hasOriginalPrice || false);
     setFormData({
@@ -284,6 +330,7 @@ export default function AdminPage() {
       originalPrice: product.originalPrice ? product.originalPrice.toString() : '',
       image: product.image,
       sizes: product.sizes.join(', '),
+      colors: product.colors ? product.colors.join(', ') : '',
     });
     setImagePreview(product.image);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -317,8 +364,10 @@ export default function AdminPage() {
       originalPrice: '',
       image: '',
       sizes: 'S,M,L,XL',
+      colors: '',
     });
     setSelectedTags([]);
+    setSelectedColors([]);
     setNewTagInput('');
     setHasDiscount(false);
     setEditingProduct(null);
@@ -331,6 +380,16 @@ export default function AdminPage() {
         return prev.filter(t => t !== tag);
       } else {
         return [...prev, tag];
+      }
+    });
+  };
+
+  const toggleColor = (colorName: string) => {
+    setSelectedColors(prev => {
+      if (prev.includes(colorName)) {
+        return prev.filter(c => c !== colorName);
+      } else {
+        return [...prev, colorName];
       }
     });
   };
@@ -1040,6 +1099,95 @@ export default function AdminPage() {
               <p className="mt-2 text-xs text-gray-500 font-light">Хэмжээнүүдийг таслалаар тусгаарлана (жишээ: S, M, L, XL)</p>
             </div>
 
+            <div>
+              <label className="block text-xs font-light text-gray-600 mb-3 tracking-widest uppercase">
+                Өнгө сонгох
+              </label>
+              
+              {/* Preset Colors */}
+              <div className="border border-gray-300 p-4 mb-3">
+                <p className="text-xs font-medium text-gray-700 mb-3 tracking-widest uppercase">Сонгох өнгө:</p>
+                <div className="flex flex-wrap gap-2">
+                  {presetColors.map((color) => (
+                    <button
+                      key={color.value}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleColor(color.name);
+                      }}
+                      className={`px-4 py-2 text-xs font-light tracking-widest uppercase transition-all cursor-pointer border-2 ${
+                        selectedColors.includes(color.name)
+                          ? 'border-gray-900 bg-gray-50'
+                          : 'border-gray-300 hover:border-gray-400 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-4 h-4 rounded border border-gray-300"
+                          style={{ backgroundColor: color.value }}
+                        />
+                        <span>{color.name}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Color Input */}
+              <div className="mb-3">
+                <label htmlFor="colors" className="block text-xs font-light text-gray-500 mb-2 tracking-widest uppercase">
+                  Эсвэл өнгөнүүдийг таслалаар тусгаарлана (жишээ: Хар, Цагаан, Улаан)
+                </label>
+                <input
+                  type="text"
+                  id="colors"
+                  name="colors"
+                  value={formData.colors || ''}
+                  onChange={handleChange}
+                  placeholder="Хар, Цагаан, Улаан"
+                  className="w-full px-4 py-3 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 transition-colors"
+                />
+              </div>
+
+              {selectedColors.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-600 font-light mb-2">
+                    <span className="font-medium">Сонгогдсон өнгө ({selectedColors.length}):</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedColors.map((colorName) => {
+                      const color = presetColors.find(c => c.name === colorName);
+                      return (
+                        <span
+                          key={colorName}
+                          className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-light border border-gray-300 flex items-center gap-2"
+                        >
+                          {color && (
+                            <div
+                              className="w-3 h-3 rounded border border-gray-300"
+                              style={{ backgroundColor: color.value }}
+                            />
+                          )}
+                          {colorName}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setSelectedColors(prev => prev.filter(c => c !== colorName));
+                            }}
+                            className="ml-2 text-gray-500 hover:text-gray-900"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {message && (
               <div
                 className={`p-4 border ${
@@ -1089,37 +1237,16 @@ export default function AdminPage() {
                   <div key={order.id} className="bg-white border border-gray-200 p-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {/* Product Info */}
-                      <div className="flex gap-4">
-                        <div className="w-24 h-24 relative bg-gray-50 border border-gray-200 flex-shrink-0 overflow-hidden">
-                          {!orderImageLoaded[order.id] && (
-                            <div className="absolute inset-0 bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 animate-pulse">
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                              </div>
-                            </div>
-                          )}
-                          <Image
-                            src={order.productImage}
-                            alt={order.productName}
-                            fill
-                            className={`object-cover transition-opacity duration-300 ${
-                              orderImageLoaded[order.id] ? 'opacity-100' : 'opacity-0'
-                            }`}
-                            sizes="96px"
-                            onLoad={() => setOrderImageLoaded(prev => ({ ...prev, [order.id]: true }))}
-                            onError={() => setOrderImageLoaded(prev => ({ ...prev, [order.id]: true }))}
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-light text-gray-900 mb-1 uppercase">{order.productName}</h3>
-                          {order.productCode && (
-                            <p className="text-xs text-gray-500 font-light mb-2">Код: {order.productCode}</p>
-                          )}
-                          <p className="text-sm text-gray-600 font-light">Хэмжээ: {order.productSize}</p>
-                          <p className="text-lg font-light text-gray-900 mt-2">₮{order.productPrice.toLocaleString()}</p>
-                        </div>
+                      <div>
+                        <h3 className="text-lg font-light text-gray-900 mb-1 uppercase">{order.productName}</h3>
+                        {order.productCode && (
+                          <p className="text-xs text-gray-500 font-light mb-2">Код: {order.productCode}</p>
+                        )}
+                        <p className="text-sm text-gray-600 font-light">Хэмжээ: {order.productSize}</p>
+                        {order.productColor && (
+                          <p className="text-sm text-gray-600 font-light">Өнгө: {order.productColor}</p>
+                        )}
+                        <p className="text-lg font-light text-gray-900 mt-2">₮{order.productPrice.toLocaleString()}</p>
                       </div>
 
                       {/* Customer Info */}
@@ -1178,6 +1305,12 @@ export default function AdminPage() {
                            order.status === 'shipped' ? 'Хүргэлтэнд гарсан' :
                            'Хүргэгдсэн'}
                         </div>
+                        <button
+                          onClick={() => setShowOrderDeleteConfirm(order.id)}
+                          className="w-full px-4 py-2 bg-gray-200 text-gray-900 text-xs font-light tracking-widest uppercase hover:bg-gray-300 transition-colors mt-3"
+                        >
+                          Устгах
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1232,7 +1365,7 @@ export default function AdminPage() {
         )}
       </main>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal for Products */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-8 max-w-md w-full mx-4">
@@ -1249,6 +1382,39 @@ export default function AdminPage() {
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(null)}
+                className="flex-1 px-6 py-3 bg-gray-200 text-gray-900 text-sm font-light tracking-widest uppercase hover:bg-gray-300 transition-colors"
+              >
+                Цуцлах
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal for Orders */}
+      {showOrderDeleteConfirm && (
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.15)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+          }}
+        >
+          <div className="bg-white p-8 max-w-md w-full mx-4 border border-gray-200">
+            <h3 className="text-xl font-serif text-gray-900 mb-4 uppercase">Захиалга устгах</h3>
+            <p className="text-gray-600 mb-6 font-light">
+              Та энэ захиалгыг устгахдаа итгэлтэй байна уу? Энэ үйлдлийг буцаах боломжгүй.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => handleDeleteOrder(showOrderDeleteConfirm)}
+                className="flex-1 px-6 py-3 bg-gray-900 text-white text-sm font-light tracking-widest uppercase hover:bg-gray-800 transition-colors"
+              >
+                Устгах
+              </button>
+              <button
+                onClick={() => setShowOrderDeleteConfirm(null)}
                 className="flex-1 px-6 py-3 bg-gray-200 text-gray-900 text-sm font-light tracking-widest uppercase hover:bg-gray-300 transition-colors"
               >
                 Цуцлах

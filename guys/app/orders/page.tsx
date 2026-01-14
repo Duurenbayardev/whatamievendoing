@@ -223,6 +223,9 @@ export default function OrdersPage() {
                         <p className="text-xs text-gray-500 font-light mb-2">Код: {order.productCode}</p>
                       )}
                       <p className="text-sm text-gray-600 font-light">Хэмжээ: {order.productSize}</p>
+                      {order.productColor && (
+                        <p className="text-sm text-gray-600 font-light">Өнгө: {order.productColor}</p>
+                      )}
                       <p className="text-lg font-light text-gray-900 mt-2">₮{order.productPrice.toLocaleString()}</p>
                     </div>
                   </div>

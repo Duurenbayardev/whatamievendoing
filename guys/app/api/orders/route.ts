@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       userId: body.userId,
       productName: body.productName,
       productSize: body.productSize,
+      productColor: body.productColor || '',
       productPrice: body.productPrice,
       productImage: body.productImage,
       productCode: body.productCode || '',

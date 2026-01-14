@@ -15,6 +15,7 @@ interface Address {
 interface CheckoutFormProps {
   productName: string;
   productSize: string;
+  productColor?: string;
   productPrice: number;
   productImage: string;
   productCode?: string;
@@ -26,6 +27,7 @@ interface CheckoutFormProps {
 export default function CheckoutForm({
   productName,
   productSize,
+  productColor,
   productPrice,
   productImage,
   productCode,
@@ -189,6 +191,7 @@ export default function CheckoutForm({
           userId: user.id,
           productName,
           productSize,
+          productColor: productColor || '',
           productPrice,
           productImage,
           productCode: productCode || '',
@@ -252,6 +255,9 @@ export default function CheckoutForm({
             <div className="space-y-2">
               <p className="text-gray-900 font-light"><span className="font-medium">Бүтээгдэхүүн:</span> {productName}</p>
               <p className="text-gray-900 font-light"><span className="font-medium">Хэмжээ:</span> {productSize}</p>
+              {productColor && (
+                <p className="text-gray-900 font-light"><span className="font-medium">Өнгө:</span> {productColor}</p>
+              )}
               <p className="text-gray-900 font-light"><span className="font-medium">Үнэ:</span> ₮{productPrice.toLocaleString()}</p>
             </div>
           </div>

@@ -83,6 +83,7 @@ export async function PUT(
       image: body.image,
       tags: body.tags || [],
       sizes: body.sizes || ['S', 'M', 'L', 'XL'],
+      colors: body.colors || [],
       updatedAt: new Date().toISOString(),
     };
 

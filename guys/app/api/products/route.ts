@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
       image: body.image,
       tags: body.tags || [],
       sizes: body.sizes || ['S', 'M', 'L', 'XL'],
+      colors: body.colors || [],
       createdAt: new Date().toISOString(),
     };
     

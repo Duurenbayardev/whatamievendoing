@@ -12,11 +12,14 @@ export default function ProductPage() {
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedSize, setSelectedSize] = useState<string>('');
+  const [selectedColor, setSelectedColor] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
   const [orderId, setOrderId] = useState<string>('');
+  const [sizeError, setSizeError] = useState<string>('');
+  const [colorError, setColorError] = useState<string>('');
 
   useEffect(() => {
     if (params.id) {
@@ -33,6 +36,9 @@ export default function ProductPage() {
         if (data.sizes && data.sizes.length > 0) {
           setSelectedSize(data.sizes[0]);
         }
+        if (data.colors && data.colors.length > 0) {
+          setSelectedColor(data.colors[0]);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch product:', error);
@@ -41,15 +47,19 @@ export default function ProductPage() {
     }
   };
 
-  const [sizeError, setSizeError] = useState<string>('');
-
   const handleBuy = () => {
     if (!selectedSize) {
       setSizeError('Хэмжээ сонгоно уу');
       setTimeout(() => setSizeError(''), 3000);
       return;
     }
+    if (product?.colors && product.colors.length > 0 && !selectedColor) {
+      setColorError('Өнгө сонгоно уу');
+      setTimeout(() => setColorError(''), 3000);
+      return;
+    }
     setSizeError('');
+    setColorError('');
     setShowCheckout(true);
   };
 
@@ -177,6 +187,59 @@ export default function ProductPage() {
               )}
             </div>
 
+            {product.colors && product.colors.length > 0 && (
+              <div>
+                <h2 className="text-sm font-light text-gray-600 mb-4 tracking-widest uppercase">Өнгө</h2>
+                <div className="flex flex-wrap gap-3">
+                  {product.colors.map((color) => {
+                    // Find color value from preset colors
+                    const presetColors = [
+                      { name: 'Хар', value: '#000000' },
+                      { name: 'Цагаан', value: '#FFFFFF' },
+                      { name: 'Саарал', value: '#808080' },
+                      { name: 'Улаан', value: '#FF0000' },
+                      { name: 'Цэнхэр', value: '#0000FF' },
+                      { name: 'Ногоон', value: '#008000' },
+                      { name: 'Шар', value: '#FFFF00' },
+                      { name: 'Ягаан', value: '#FF00FF' },
+                      { name: 'Улбар шар', value: '#FFA500' },
+                      { name: 'Хүрэн', value: '#A52A2A' },
+                      { name: 'Цайвар цэнхэр', value: '#ADD8E6' },
+                      { name: 'Цайвар ягаан', value: '#FFB6C1' },
+                      { name: 'Бор', value: '#8B4513' },
+                      { name: 'Цайвар ногоон', value: '#90EE90' },
+                      { name: 'Мөнгө', value: '#C0C0C0' },
+                      { name: 'Алт', value: '#FFD700' },
+                    ];
+                    const colorData = presetColors.find(c => c.name === color) || { name: color, value: '#CCCCCC' };
+                    return (
+                      <button
+                        key={color}
+                        onClick={() => {
+                          setSelectedColor(color);
+                          setColorError('');
+                        }}
+                        className={`px-6 py-3 text-sm font-light tracking-widest uppercase transition-all duration-300 border-2 flex items-center gap-2 ${
+                          selectedColor === color
+                            ? 'bg-gray-50 border-gray-900'
+                            : 'bg-white border-gray-300 hover:border-gray-900'
+                        }`}
+                      >
+                        <div
+                          className="w-5 h-5 rounded border border-gray-300"
+                          style={{ backgroundColor: colorData.value }}
+                        />
+                        <span>{color}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {colorError && (
+                  <p className="mt-2 text-xs text-red-600 font-light">{colorError}</p>
+                )}
+              </div>
+            )}
+
             {product.tags.length > 0 && (
               <div>
                 <h2 className="text-sm font-light text-gray-600 mb-4 tracking-widest uppercase">Шошго</h2>
@@ -210,6 +273,7 @@ export default function ProductPage() {
         <CheckoutForm
           productName={product.name}
           productSize={selectedSize}
+          productColor={selectedColor || undefined}
           productPrice={product.price}
           productImage={product.image}
           productCode={product.productCode}
