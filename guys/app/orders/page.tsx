@@ -9,6 +9,7 @@ interface Order {
   id: string;
   productName: string;
   productSize: string;
+  productColor?: string;
   productPrice: number;
   productImage: string;
   productCode?: string;
