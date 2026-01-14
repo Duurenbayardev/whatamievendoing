@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import SearchBar from './SearchBar';
@@ -10,7 +10,7 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+function SidebarContent({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -138,5 +138,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
       </aside>
     </>
+  );
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+  return (
+    <Suspense fallback={null}>
+      <SidebarContent isOpen={isOpen} onClose={onClose} />
+    </Suspense>
   );
 }

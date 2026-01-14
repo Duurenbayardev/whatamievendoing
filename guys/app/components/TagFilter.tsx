@@ -1,12 +1,13 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 interface TagFilterProps {
   tags: string[];
 }
 
-export default function TagFilter({ tags }: TagFilterProps) {
+function TagFilterContent({ tags }: TagFilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedTag = searchParams.get('tag');
@@ -46,5 +47,13 @@ export default function TagFilter({ tags }: TagFilterProps) {
         ))}
       </div>
     </div>
+  );
+}
+
+export default function TagFilter({ tags }: TagFilterProps) {
+  return (
+    <Suspense fallback={<div className="h-12" />}>
+      <TagFilterContent tags={tags} />
+    </Suspense>
   );
 }

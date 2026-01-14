@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../lib/mongodb';
-import { ObjectId } from 'mongodb';
+import { ObjectId, UpdateFilter } from 'mongodb';
 
 // GET all orders (for admin) or orders by userId
 export async function GET(request: NextRequest) {
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     if (body.userId && ObjectId.isValid(body.userId)) {
       await usersCollection.updateOne(
         { _id: new ObjectId(body.userId) },
-        { $push: { orders: orderId } }
+        { $push: { orders: orderId } } as unknown as UpdateFilter<any>
       );
     }
     
