@@ -30,10 +30,10 @@ export default function ProductSlider({ limit = 6, onImagesLoaded }: ProductSlid
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('/api/products');
+      const response = await fetch('/api/products?limit=5&page=1');
       const data = await response.json();
-      // Data is already sorted by newest first from API
-      const productsData = data.slice(0, limit);
+      // Handle both array and paginated response
+      const productsData = Array.isArray(data) ? data.slice(0, limit) : (data.products || []).slice(0, limit);
       setProducts(productsData);
       
       // If no products, immediately notify that images are "loaded"
@@ -92,17 +92,17 @@ export default function ProductSlider({ limit = 6, onImagesLoaded }: ProductSlid
   }
 
   return (
-    <div className="py-12">
-      <div className="flex items-center justify-between mb-12">
-        <h2 className="text-4xl font-serif text-gray-900 tracking-tight">Онцлох бүтээгдэхүүн</h2>
+    <div className="py-8 md:py-12">
+      <div className="flex items-center justify-between mb-8 md:mb-12">
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-serif text-gray-900 tracking-tight">Онцлох бүтээгдэхүүн</h2>
         <Link
           href="/shop"
-          className="text-gray-600 hover:text-gray-900 font-light text-sm tracking-widest uppercase transition-colors"
+          className="text-gray-600 hover:text-gray-900 font-light text-xs md:text-sm tracking-widest uppercase transition-colors"
         >
           Бүгдийг харах →
         </Link>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
         {products.map((product, index) => (
           <ProductCard 
             key={product.id} 

@@ -200,8 +200,8 @@ export default function Home() {
       </section>
 
       {/* Featured Products */}
-      <main className="flex-1 max-w-7xl mx-auto px-6 lg:px-12 py-20 w-full">
-        <ProductSlider limit={8} onImagesLoaded={() => setProductsImagesLoaded(true)} />
+      <main className="flex-1 max-w-7xl mx-auto px-4 md:px-6 lg:px-12 py-12 md:py-16 lg:py-20 w-full">
+        <ProductSlider limit={5} onImagesLoaded={() => setProductsImagesLoaded(true)} />
       </main>
     </div>
     </>

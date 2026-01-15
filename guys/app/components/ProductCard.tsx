@@ -53,30 +53,30 @@ export default function ProductCard({ product, index = 0, onImageLoad }: Product
           />
           {/* Stock Status Badge */}
           {product.stock !== undefined && (
-            <div className="absolute top-2 right-2">
+            <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2">
               {product.stock > 0 ? (
-                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-light tracking-widest uppercase">
+                <span className="px-1.5 py-0.5 md:px-2 md:py-1 bg-green-100 text-green-700 text-[10px] md:text-xs font-light tracking-widest uppercase">
                   Боломжтой
                 </span>
               ) : (
-                <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-light tracking-widest uppercase">
+                <span className="px-1.5 py-0.5 md:px-2 md:py-1 bg-red-100 text-red-700 text-[10px] md:text-xs font-light tracking-widest uppercase">
                   Дууссан
                 </span>
               )}
             </div>
           )}
         </div>
-        <div className="p-6">
-          <h3 className="text-lg font-light text-gray-900 mb-2 tracking-wide uppercase">{product.name}</h3>
-          <p className="text-sm text-gray-600 mb-4 line-clamp-2 font-light">{product.description}</p>
-          <div className="flex items-center gap-3">
+        <div className="p-4 md:p-6">
+          <h3 className="text-sm md:text-base lg:text-lg font-light text-gray-900 mb-1 md:mb-2 tracking-wide uppercase">{product.name}</h3>
+          <p className="text-xs md:text-sm text-gray-600 mb-3 md:mb-4 line-clamp-2 font-light">{product.description}</p>
+          <div className="flex items-center gap-2 md:gap-3">
             {product.originalPrice && product.originalPrice > product.price ? (
               <>
-                <p className="text-xl font-light text-gray-900 tracking-wider">₮{product.price.toLocaleString()}</p>
-                <p className="text-sm font-light text-gray-400 line-through tracking-wider">₮{product.originalPrice.toLocaleString()}</p>
+                <p className="text-base md:text-lg lg:text-xl font-light text-gray-900 tracking-wider">₮{product.price.toLocaleString()}</p>
+                <p className="text-xs md:text-sm font-light text-gray-400 line-through tracking-wider">₮{product.originalPrice.toLocaleString()}</p>
               </>
             ) : (
-              <p className="text-xl font-light text-gray-900 tracking-wider">₮{product.price.toLocaleString()}</p>
+              <p className="text-base md:text-lg lg:text-xl font-light text-gray-900 tracking-wider">₮{product.price.toLocaleString()}</p>
             )}
           </div>
         </div>

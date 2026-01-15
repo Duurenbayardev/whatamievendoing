@@ -6,8 +6,8 @@ import { CartItem } from '../types';
 interface CartContextType {
   cart: CartItem[];
   addToCart: (item: CartItem) => void;
-  removeFromCart: (productId: string, size: string, color?: string) => void;
-  updateQuantity: (productId: string, size: string, color: string | undefined, quantity: number) => void;
+  removeFromCart: (productId: string, size: string) => void;
+  updateQuantity: (productId: string, size: string, quantity: number) => void;
   clearCart: () => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
@@ -37,12 +37,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addToCart = (item: CartItem) => {
     setCart((prevCart) => {
-      // Check if item already exists in cart (same product, size, color)
+      // Check if item already exists in cart (same product, size)
       const existingIndex = prevCart.findIndex(
         (cartItem) =>
           cartItem.productId === item.productId &&
-          cartItem.size === item.size &&
-          cartItem.color === item.color
+          cartItem.size === item.size
       );
 
       if (existingIndex >= 0) {
@@ -57,28 +56,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const removeFromCart = (productId: string, size: string, color?: string) => {
+  const removeFromCart = (productId: string, size: string) => {
     setCart((prevCart) =>
       prevCart.filter(
         (item) =>
           !(
             item.productId === productId &&
-            item.size === size &&
-            item.color === color
+            item.size === size
           )
       )
     );
   };
 
-  const updateQuantity = (productId: string, size: string, color: string | undefined, quantity: number) => {
+  const updateQuantity = (productId: string, size: string, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(productId, size, color);
+      removeFromCart(productId, size);
       return;
     }
 
     setCart((prevCart) =>
       prevCart.map((item) =>
-        item.productId === productId && item.size === size && item.color === color
+        item.productId === productId && item.size === size
           ? { ...item, quantity }
           : item
       )

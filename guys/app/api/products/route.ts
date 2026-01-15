@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
-        { productCode: { $regex: search, $options: 'i' } },
         { tags: { $regex: search, $options: 'i' } },
       ];
     }
@@ -43,13 +42,24 @@ export async function GET(request: NextRequest) {
       .toArray();
     
     // Convert ObjectId to string for JSON response
-    const formattedProducts = products.map((product) => ({
-      ...product,
-      id: product._id.toString(),
-      _id: undefined,
-      // Ensure inStock is calculated
-      inStock: product.stock === undefined || product.stock > 0,
-    }));
+    const formattedProducts = products.map((product) => {
+      // Calculate inStock based on size-specific stock
+      let inStock = true;
+      if (product.stock && typeof product.stock === 'object') {
+        // Check if any size has stock > 0
+        inStock = Object.values(product.stock).some((qty: any) => qty > 0);
+      } else if (product.stock !== undefined && typeof product.stock === 'number') {
+        // Legacy format - single stock number
+        inStock = product.stock > 0;
+      }
+      
+      return {
+        ...product,
+        id: product._id.toString(),
+        _id: undefined,
+        inStock,
+      };
+    });
     
     // Return paginated response if page/limit specified, otherwise return all (backward compatibility)
     if (searchParams.has('page') || searchParams.has('limit')) {
@@ -79,8 +89,27 @@ export async function POST(request: NextRequest) {
     const collection = db.collection('products');
     const body = await request.json();
     
+    // Process stock - convert to size-specific format if needed
+    let stock: Record<string, number> | undefined = undefined;
+    if (body.stock) {
+      if (typeof body.stock === 'object') {
+        // Already in size-specific format
+        stock = body.stock;
+      } else if (typeof body.stock === 'string' || typeof body.stock === 'number') {
+        // Legacy format - distribute evenly or create default structure
+        const sizes = body.sizes || ['S', 'M', 'L', 'XL'];
+        const totalStock = parseInt(body.stock.toString());
+        stock = {};
+        sizes.forEach((size: string) => {
+          stock![size] = Math.floor(totalStock / sizes.length);
+        });
+      }
+    }
+    
+    // Calculate inStock based on size-specific stock
+    const inStock = stock ? Object.values(stock).some(qty => qty > 0) : true;
+    
     const newProduct = {
-      productCode: body.productCode || '',
       name: body.name,
       description: body.description || '',
       price: parseFloat(body.price),
@@ -91,9 +120,8 @@ export async function POST(request: NextRequest) {
       images: body.images || (body.image ? [body.image] : []),
       tags: body.tags || [],
       sizes: body.sizes || ['S', 'M', 'L', 'XL'],
-      colors: body.colors || [],
-      stock: body.stock !== undefined ? parseInt(body.stock) : undefined,
-      inStock: body.stock === undefined || parseInt(body.stock) > 0,
+      stock,
+      inStock,
       createdAt: new Date().toISOString(),
     };
     

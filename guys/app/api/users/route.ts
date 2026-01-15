@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     
     if (existingUser) {
       // Update existing user
-      const updateData: any = {
+      const updateFields: any = {
         fullName,
         updatedAt: new Date().toISOString(),
       };
@@ -70,13 +70,27 @@ export async function POST(request: NextRequest) {
             ...address,
             id: Date.now().toString(),
           };
-          updateData.$push = { addresses: newAddress };
+          // Use $push for addresses and $set for other fields
+          const result = await usersCollection.updateOne(
+            { phone },
+            { 
+              $set: updateFields,
+              $push: { addresses: newAddress }
+            }
+          );
+          const updatedUser = await usersCollection.findOne({ phone });
+          return NextResponse.json({
+            ...updatedUser,
+            id: updatedUser!._id.toString(),
+            _id: undefined,
+          });
         }
       }
       
+      // If no address to add, just update fields
       const result = await usersCollection.updateOne(
         { phone },
-        { $set: updateData }
+        { $set: updateFields }
       );
       
       const updatedUser = await usersCollection.findOne({ phone });

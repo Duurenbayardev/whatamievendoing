@@ -34,13 +34,13 @@ export default function Header() {
   return (
     <>
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="flex items-center justify-between h-20">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12">
+          <div className="flex items-center justify-between h-16 md:h-20">
             <button
               onClick={() => setSidebarOpen(true)}
               className="text-gray-900 hover:text-gray-600 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
@@ -51,21 +51,21 @@ export default function Header() {
                 alt="GUYS SHOP"
                 width={120}
                 height={40}
-                className="h-10 w-auto object-contain"
+                className="h-8 md:h-10 w-auto object-contain"
                 priority
               />
             </Link>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 md:gap-6">
               <Link
                 href="/cart"
                 className="relative text-gray-900 hover:text-gray-600 transition-colors"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
                 {cartItemCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-gray-900 text-white text-xs font-light w-5 h-5 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 md:-top-2 md:-right-2 bg-gray-900 text-white text-[10px] md:text-xs font-light w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center">
                     {cartItemCount > 99 ? '99+' : cartItemCount}
                   </span>
                 )}

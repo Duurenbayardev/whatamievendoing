@@ -1,6 +1,5 @@
 export interface Product {
   id: string;
-  productCode: string;
   name: string;
   description: string;
   price: number;
@@ -9,20 +8,17 @@ export interface Product {
   images?: string[]; // Multiple images for gallery
   tags: string[];
   sizes: string[];
-  colors: string[];
-  stock?: number; // Stock quantity
-  inStock?: boolean; // Stock status
+  stock?: Record<string, number>; // Stock quantity per size: { "S": 10, "M": 5, "L": 8 }
+  inStock?: boolean; // Stock status (computed)
   createdAt: string;
 }
 
 export interface CartItem {
   productId: string;
   productName: string;
-  productCode?: string;
   productImage: string;
   price: number;
   size: string;
-  color?: string;
   quantity: number;
 }
 
@@ -41,10 +37,8 @@ export interface Order {
   userId: string;
   productName: string;
   productSize: string;
-  productColor?: string;
   productPrice: number;
   productImage: string;
-  productCode?: string;
   quantity?: number; // Quantity ordered
   fullName: string;
   phone: string;

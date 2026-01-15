@@ -41,25 +41,6 @@ export default function AdminPage() {
     'Супер хямд',
   ];
 
-  // Preset colors
-  const presetColors = [
-    { name: 'Хар', value: '#000000' },
-    { name: 'Цагаан', value: '#FFFFFF' },
-    { name: 'Саарал', value: '#808080' },
-    { name: 'Улаан', value: '#FF0000' },
-    { name: 'Цэнхэр', value: '#0000FF' },
-    { name: 'Ногоон', value: '#008000' },
-    { name: 'Шар', value: '#FFFF00' },
-    { name: 'Ягаан', value: '#FF00FF' },
-    { name: 'Улбар шар', value: '#FFA500' },
-    { name: 'Хүрэн', value: '#A52A2A' },
-    { name: 'Цайвар цэнхэр', value: '#ADD8E6' },
-    { name: 'Цайвар ягаан', value: '#FFB6C1' },
-    { name: 'Бор', value: '#8B4513' },
-    { name: 'Цайвар ногоон', value: '#90EE90' },
-    { name: 'Мөнгө', value: '#C0C0C0' },
-    { name: 'Алт', value: '#FFD700' },
-  ];
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
@@ -71,18 +52,15 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [formData, setFormData] = useState({
-    productCode: '',
     name: '',
     description: '',
     price: '',
     originalPrice: '',
     image: '',
     sizes: 'S,M,L,XL',
-    colors: '',
-    stock: '',
+    stock: '', // Will be converted to size-specific format: "S:10,M:5,L:8"
   });
   const [images, setImages] = useState<string[]>([]);
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -234,12 +212,6 @@ export default function AdminPage() {
     setMessage('');
 
     // Validate required fields
-    if (!formData.productCode.trim()) {
-      setMessage('Бүтээгдэхүүний кодыг оруулна уу.');
-      setSubmitLoading(false);
-      return;
-    }
-
     if (!formData.name.trim()) {
       setMessage('Бүтээгдэхүүний нэрийг оруулна уу.');
       setSubmitLoading(false);
@@ -265,8 +237,34 @@ export default function AdminPage() {
         ? images 
         : (formData.image ? [formData.image] : []);
       
+      // Process stock - convert to size-specific format
+      const sizesArray = formData.sizes.split(',').map((size) => size.trim()).filter(Boolean);
+      let stock: Record<string, number> | undefined = undefined;
+      
+      if (formData.stock.trim()) {
+        // Check if stock is in format "S:10,M:5,L:8"
+        if (formData.stock.includes(':')) {
+          stock = {};
+          const stockEntries = formData.stock.split(',').map((entry) => entry.trim());
+          stockEntries.forEach((entry) => {
+            const [size, qty] = entry.split(':').map((s) => s.trim());
+            if (size && qty && !isNaN(parseInt(qty))) {
+              stock![size] = parseInt(qty);
+            }
+          });
+        } else {
+          // Single number - distribute evenly across sizes
+          const totalStock = parseInt(formData.stock);
+          if (!isNaN(totalStock) && sizesArray.length > 0) {
+            stock = {};
+            sizesArray.forEach((size) => {
+              stock![size] = Math.floor(totalStock / sizesArray.length);
+            });
+          }
+        }
+      }
+      
       const productData = {
-        productCode: formData.productCode,
         name: formData.name,
         description: formData.description,
         price: parseFloat(formData.price),
@@ -276,9 +274,8 @@ export default function AdminPage() {
         image: allImages[0] || formData.image, // First image as main image for backward compatibility
         images: allImages, // Multiple images array
         tags: selectedTags,
-        sizes: formData.sizes.split(',').map((size) => size.trim()).filter(Boolean),
-        colors: selectedColors.length > 0 ? selectedColors : (formData.colors ? formData.colors.split(',').map((color) => color.trim()).filter(Boolean) : []),
-        stock: formData.stock ? parseInt(formData.stock) : undefined, // Stock quantity
+        sizes: sizesArray,
+        stock, // Size-specific stock
       };
 
       if (editingProduct) {
@@ -329,7 +326,6 @@ export default function AdminPage() {
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setSelectedTags(product.tags || []);
-    setSelectedColors(product.colors || []);
     const hasOriginalPrice = product.originalPrice && product.originalPrice > product.price;
     setHasDiscount(hasOriginalPrice || false);
     
@@ -340,15 +336,17 @@ export default function AdminPage() {
     
     setImages(productImages);
     setFormData({
-      productCode: product.productCode || '',
       name: product.name,
       description: product.description || '',
       price: product.price.toString(),
       originalPrice: product.originalPrice ? product.originalPrice.toString() : '',
       image: product.image,
       sizes: product.sizes.join(', '),
-      colors: product.colors ? product.colors.join(', ') : '',
-      stock: product.stock !== undefined ? product.stock.toString() : '',
+      stock: product.stock !== undefined 
+        ? (typeof product.stock === 'object' 
+          ? Object.entries(product.stock).map(([size, qty]) => `${size}:${qty}`).join(',')
+          : product.stock.toString())
+        : '',
     });
     setImagePreview(product.image);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -375,19 +373,16 @@ export default function AdminPage() {
 
   const resetForm = () => {
     setFormData({
-      productCode: '',
       name: '',
       description: '',
       price: '',
       originalPrice: '',
       image: '',
       sizes: 'S,M,L,XL',
-      colors: '',
       stock: '',
     });
     setImages([]);
     setSelectedTags([]);
-    setSelectedColors([]);
     setNewTagInput('');
     setHasDiscount(false);
     setEditingProduct(null);
@@ -404,15 +399,6 @@ export default function AdminPage() {
     });
   };
 
-  const toggleColor = (colorName: string) => {
-    setSelectedColors(prev => {
-      if (prev.includes(colorName)) {
-        return prev.filter(c => c !== colorName);
-      } else {
-        return [...prev, colorName];
-      }
-    });
-  };
 
   const addNewTag = () => {
     const trimmedTag = newTagInput.trim();
@@ -809,21 +795,6 @@ export default function AdminPage() {
             {editingProduct ? 'Бүтээгдэхүүн засах' : 'Шинэ бүтээгдэхүүн нэмэх'}
           </h2>
           <form onSubmit={handleSubmit} className="bg-white border border-gray-200 p-8 space-y-8">
-            <div>
-              <label htmlFor="productCode" className="block text-xs font-light text-gray-600 mb-3 tracking-widest uppercase">
-                Бүтээгдэхүүний код *
-              </label>
-              <input
-                type="text"
-                id="productCode"
-                name="productCode"
-                value={formData.productCode || ''}
-                onChange={handleChange}
-                required
-                placeholder="Жишээ: GS-001"
-                className="w-full px-4 py-3 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 transition-colors"
-              />
-            </div>
 
             <div>
               <label htmlFor="name" className="block text-xs font-light text-gray-600 mb-3 tracking-widest uppercase">
@@ -1221,87 +1192,6 @@ export default function AdminPage() {
               </label>
               
               {/* Preset Colors */}
-              <div className="border border-gray-300 p-4 mb-3">
-                <p className="text-xs font-medium text-gray-700 mb-3 tracking-widest uppercase">Сонгох өнгө:</p>
-                <div className="flex flex-wrap gap-2">
-                  {presetColors.map((color) => (
-                    <button
-                      key={color.value}
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        toggleColor(color.name);
-                      }}
-                      className={`px-4 py-2 text-xs font-light tracking-widest uppercase transition-all cursor-pointer border-2 ${
-                        selectedColors.includes(color.name)
-                          ? 'border-gray-900 bg-gray-50'
-                          : 'border-gray-300 hover:border-gray-400 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-4 h-4 rounded border border-gray-300"
-                          style={{ backgroundColor: color.value }}
-                        />
-                        <span>{color.name}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Custom Color Input */}
-              <div className="mb-3">
-                <label htmlFor="colors" className="block text-xs font-light text-gray-500 mb-2 tracking-widest uppercase">
-                  Эсвэл өнгөнүүдийг таслалаар тусгаарлана (жишээ: Хар, Цагаан, Улаан)
-                </label>
-                <input
-                  type="text"
-                  id="colors"
-                  name="colors"
-                  value={formData.colors || ''}
-                  onChange={handleChange}
-                  placeholder="Хар, Цагаан, Улаан"
-                  className="w-full px-4 py-3 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 transition-colors"
-                />
-              </div>
-
-              {selectedColors.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-xs text-gray-600 font-light mb-2">
-                    <span className="font-medium">Сонгогдсон өнгө ({selectedColors.length}):</span>
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedColors.map((colorName) => {
-                      const color = presetColors.find(c => c.name === colorName);
-                      return (
-                        <span
-                          key={colorName}
-                          className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-light border border-gray-300 flex items-center gap-2"
-                        >
-                          {color && (
-                            <div
-                              className="w-3 h-3 rounded border border-gray-300"
-                              style={{ backgroundColor: color.value }}
-                            />
-                          )}
-                          {colorName}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setSelectedColors(prev => prev.filter(c => c !== colorName));
-                            }}
-                            className="ml-2 text-gray-500 hover:text-gray-900"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
 
             <div>
@@ -1309,16 +1199,17 @@ export default function AdminPage() {
                 Барааны тоо ширхэг (Нөөц)
               </label>
               <input
-                type="number"
+                type="text"
                 id="stock"
                 name="stock"
                 value={formData.stock || ''}
                 onChange={handleChange}
-                min="0"
-                step="1"
-                placeholder="Жишээ: 10 (хоосон үлдээвэл хязгааргүй гэж тооцно)"
+                placeholder="Жишээ: S:10,M:5,L:8 эсвэл зөвхөн 10 (бүх хэмжээнд тэгш хуваагдана)"
                 className="w-full px-4 py-3 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 transition-colors"
               />
+              <p className="mt-2 text-xs text-gray-500 font-light">
+                Хэмжээ тус бүрд нөөц зааж өгөх: S:10,M:5,L:8 эсвэл зөвхөн тоо оруулаад бүх хэмжээнд тэгш хуваагдана
+              </p>
               <p className="mt-2 text-xs text-gray-500 font-light">
                 Барааны тоо ширхэгийг оруулна уу. Хоосон үлдээвэл нөөц хязгааргүй гэж тооцно.
               </p>
@@ -1375,13 +1266,7 @@ export default function AdminPage() {
                       {/* Product Info */}
                       <div>
                         <h3 className="text-lg font-light text-gray-900 mb-1 uppercase">{order.productName}</h3>
-                        {order.productCode && (
-                          <p className="text-xs text-gray-500 font-light mb-2">Код: {order.productCode}</p>
-                        )}
                         <p className="text-sm text-gray-600 font-light">Хэмжээ: {order.productSize}</p>
-                        {order.productColor && (
-                          <p className="text-sm text-gray-600 font-light">Өнгө: {order.productColor}</p>
-                        )}
                         <p className="text-sm text-gray-600 font-light">Тоо ширхэг: {order.quantity || 1}</p>
                         <p className="text-lg font-light text-gray-900 mt-2">
                           ₮{((order.quantity || 1) * order.productPrice).toLocaleString()}

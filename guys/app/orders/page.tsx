@@ -9,10 +9,8 @@ interface Order {
   id: string;
   productName: string;
   productSize: string;
-  productColor?: string;
   productPrice: number;
   productImage: string;
-  productCode?: string;
   quantity?: number;
   fullName: string;
   phone: string;
@@ -163,9 +161,9 @@ export default function OrdersPage() {
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12 py-4 md:py-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-serif text-gray-900 tracking-tight uppercase">Миний захиалгууд</h1>
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-serif text-gray-900 tracking-tight uppercase">Миний захиалгууд</h1>
             <Link
               href="/shop"
               className="text-gray-600 hover:text-gray-900 font-light text-sm tracking-wider uppercase transition-colors"
@@ -176,7 +174,7 @@ export default function OrdersPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 lg:px-12 py-16">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12 py-8 md:py-12 lg:py-16">
         {orders.length === 0 ? (
           <div className="text-center py-20">
             <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -221,13 +219,7 @@ export default function OrdersPage() {
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-light text-gray-900 mb-1 uppercase">{order.productName}</h3>
-                      {order.productCode && (
-                        <p className="text-xs text-gray-500 font-light mb-2">Код: {order.productCode}</p>
-                      )}
                       <p className="text-sm text-gray-600 font-light">Хэмжээ: {order.productSize}</p>
-                      {order.productColor && (
-                        <p className="text-sm text-gray-600 font-light">Өнгө: {order.productColor}</p>
-                      )}
                       <p className="text-sm text-gray-600 font-light">Тоо ширхэг: {order.quantity || 1}</p>
                       <p className="text-lg font-light text-gray-900 mt-2">
                         ₮{((order.quantity || 1) * order.productPrice).toLocaleString()}

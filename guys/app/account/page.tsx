@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function AccountPage() {
+function AccountContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [phone, setPhone] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
@@ -15,6 +16,8 @@ export default function AccountPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [isSignupMode, setIsSignupMode] = useState(false);
   const [loadingStats, setLoadingStats] = useState(false);
+
+  const returnUrl = searchParams.get('returnUrl') || null;
 
   useEffect(() => {
     const savedPhone = localStorage.getItem('userPhone');
@@ -80,6 +83,18 @@ export default function AccountPage() {
         setFullName(userData.fullName);
         setIsLoggedIn(true);
         setIsSignupMode(false);
+        
+        // If user has no addresses and came from checkout, redirect to address creation
+        if ((!userData.addresses || userData.addresses.length === 0) && returnUrl) {
+          router.push(`/account/addresses?returnUrl=${encodeURIComponent(returnUrl)}`);
+          return;
+        }
+        
+        // Redirect back to returnUrl if provided
+        if (returnUrl) {
+          router.push(returnUrl);
+          return;
+        }
       } else if (response.status === 404) {
         // User doesn't exist
         if (isSignupMode) {
@@ -105,6 +120,19 @@ export default function AccountPage() {
             setUser(newUser);
             setIsLoggedIn(true);
             setIsSignupMode(false);
+            
+            // If new user has no addresses, redirect to address creation
+            if (!newUser.addresses || newUser.addresses.length === 0) {
+              const addressUrl = returnUrl ? `/account/addresses?returnUrl=${encodeURIComponent(returnUrl)}` : '/account/addresses';
+              router.push(addressUrl);
+              return;
+            }
+            
+            // Redirect back to returnUrl if provided
+            if (returnUrl) {
+              router.push(returnUrl);
+              return;
+            }
           } else {
             const errorData = await createResponse.json();
             setError(errorData.error || 'Бүртгэл үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.');
@@ -172,6 +200,19 @@ export default function AccountPage() {
         setUser(newUser);
         setIsLoggedIn(true);
         setIsSignupMode(false);
+        
+        // If new user has no addresses, redirect to address creation
+        if (!newUser.addresses || newUser.addresses.length === 0) {
+          const addressUrl = returnUrl ? `/account/addresses?returnUrl=${encodeURIComponent(returnUrl)}` : '/account/addresses';
+          router.push(addressUrl);
+          return;
+        }
+        
+        // Redirect back to returnUrl if provided
+        if (returnUrl) {
+          router.push(returnUrl);
+          return;
+        }
       } else {
         const errorData = await createResponse.json();
         setError(errorData.error || 'Бүртгэл үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.');
@@ -214,9 +255,9 @@ export default function AccountPage() {
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <header className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12 py-4 md:py-6">
             <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-serif text-gray-900 tracking-tight uppercase">Миний бүртгэл</h1>
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-serif text-gray-900 tracking-tight uppercase">Миний бүртгэл</h1>
               <Link
                 href="/shop"
                 className="text-gray-600 hover:text-gray-900 font-light text-sm tracking-wider uppercase transition-colors"
@@ -227,16 +268,16 @@ export default function AccountPage() {
           </div>
         </header>
 
-        <main className="max-w-7xl mx-auto px-6 lg:px-12 py-12">
+        <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12 py-6 md:py-8 lg:py-12">
           {/* Welcome Section with Avatar */}
           <div className="bg-white border border-gray-200 p-8 mb-8">
-            <div className="flex items-center gap-6">
-              <div className="w-20 h-20 rounded-full bg-gray-900 flex items-center justify-center text-white text-2xl font-serif">
+            <div className="flex items-center gap-4 md:gap-6">
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gray-900 flex items-center justify-center text-white text-lg md:text-xl lg:text-2xl font-serif">
                 {getUserInitials(user.fullName)}
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-serif text-gray-900 mb-2">Сайн байна уу, {user.fullName}!</h2>
-                <p className="text-gray-600 font-light">Тавтай морилно уу</p>
+                <h2 className="text-lg md:text-xl lg:text-2xl font-serif text-gray-900 mb-1 md:mb-2">Сайн байна уу, {user.fullName}!</h2>
+                <p className="text-sm md:text-base text-gray-600 font-light">Тавтай морилно уу</p>
               </div>
             </div>
           </div>
@@ -253,7 +294,7 @@ export default function AccountPage() {
               {loadingStats ? (
                 <div className="h-8 bg-gray-100 animate-pulse" />
               ) : (
-                <p className="text-3xl font-light text-gray-900">{totalOrders}</p>
+                <p className="text-2xl md:text-3xl font-light text-gray-900">{totalOrders}</p>
               )}
             </div>
 
@@ -321,7 +362,7 @@ export default function AccountPage() {
 
           {/* User Info Section */}
           <div className="bg-white border border-gray-200 p-8 mb-8">
-            <h2 className="text-xl font-serif text-gray-900 tracking-tight uppercase mb-6">Хувийн мэдээлэл</h2>
+            <h2 className="text-base md:text-lg lg:text-xl font-serif text-gray-900 tracking-tight uppercase mb-4 md:mb-6">Хувийн мэдээлэл</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <p className="text-xs font-light text-gray-500 mb-2 tracking-widest uppercase">Бүтэн нэр</p>
@@ -337,7 +378,7 @@ export default function AccountPage() {
           {/* Addresses Section */}
           <div className="bg-white border border-gray-200 p-8 mb-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-serif text-gray-900 tracking-tight uppercase">Хаягууд</h2>
+              <h2 className="text-base md:text-lg lg:text-xl font-serif text-gray-900 tracking-tight uppercase">Хаягууд</h2>
               <Link
                 href="/account/addresses"
                 className="text-sm font-light tracking-widest uppercase text-gray-900 hover:text-gray-600 transition-colors border-b border-gray-900 hover:border-gray-600"
@@ -395,7 +436,7 @@ export default function AccountPage() {
       <div className="w-full max-w-md">
         <div className="bg-white border border-gray-200 p-8">
           <div className="mb-8 text-center">
-            <h1 className="text-4xl font-serif text-gray-900 tracking-tight uppercase mb-4">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-serif text-gray-900 tracking-tight uppercase mb-3 md:mb-4">
               {isSignupMode ? 'Шинэ бүртгэл үүсгэх' : 'Бүртгэлд нэвтрэх'}
             </h1>
             <p className="text-gray-600 font-light">
@@ -504,5 +545,24 @@ export default function AccountPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="flex justify-center gap-1 mb-4">
+            <div className="w-2 h-2 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+          <p className="text-gray-600 font-light">Ачааллаж байна...</p>
+        </div>
+      </div>
+    }>
+      <AccountContent />
+    </Suspense>
   );
 }

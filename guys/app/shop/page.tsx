@@ -24,16 +24,19 @@ function ShopContent() {
     const page = parseInt(searchParams.get('page') || '1');
     setCurrentPage(page);
     const query = searchParams.toString();
-    fetchProducts(query);
+    fetchProducts(query, page);
   }, [searchParams]);
 
-  const fetchProducts = async (query: string = '') => {
+  const fetchProducts = async (query: string = '', pageNum?: number) => {
     setLoading(true);
     try {
       // Add pagination to query if not present
       const params = new URLSearchParams(query);
+      const pageToUse = pageNum !== undefined ? pageNum : parseInt(params.get('page') || '1');
       if (!params.has('page')) {
-        params.set('page', currentPage.toString());
+        params.set('page', pageToUse.toString());
+      } else {
+        params.set('page', pageToUse.toString());
       }
       if (!params.has('limit')) {
         params.set('limit', '12');
@@ -126,9 +129,9 @@ function ShopContent() {
 
   return (
     <div className="min-h-screen bg-white">
-      <main className="max-w-7xl mx-auto px-6 lg:px-12 py-16">
-        <div className="mb-12">
-          <h1 className="text-5xl font-serif text-gray-900 mb-8 tracking-tight uppercase">{categoryTitle}</h1>
+      <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12 py-8 md:py-12 lg:py-16">
+        <div className="mb-8 md:mb-12">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-serif text-gray-900 mb-4 md:mb-6 lg:mb-8 tracking-tight uppercase">{categoryTitle}</h1>
           <TagFilter tags={tags} />
         </div>
 

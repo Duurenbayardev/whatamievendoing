@@ -30,13 +30,20 @@ export async function GET(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
     
+    // Calculate inStock based on size-specific stock
+    let inStock = true;
+    if (product.stock && typeof product.stock === 'object') {
+      inStock = Object.values(product.stock).some((qty: any) => qty > 0);
+    } else if (product.stock !== undefined && typeof product.stock === 'number') {
+      inStock = product.stock > 0;
+    }
+    
     // Convert ObjectId to string for JSON response
     const formattedProduct = {
       ...product,
       id: product._id ? product._id.toString() : product.id,
       _id: undefined,
-      // Ensure inStock is calculated
-      inStock: product.stock === undefined || product.stock > 0,
+      inStock,
     };
     
     return NextResponse.json(formattedProduct);
@@ -77,8 +84,27 @@ export async function PUT(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
     
+    // Process stock - convert to size-specific format if needed
+    let stock: Record<string, number> | undefined = undefined;
+    if (body.stock) {
+      if (typeof body.stock === 'object') {
+        // Already in size-specific format
+        stock = body.stock;
+      } else if (typeof body.stock === 'string' || typeof body.stock === 'number') {
+        // Legacy format - distribute evenly or create default structure
+        const sizes = body.sizes || existingProduct.sizes || ['S', 'M', 'L', 'XL'];
+        const totalStock = parseInt(body.stock.toString());
+        stock = {};
+        sizes.forEach((size: string) => {
+          stock![size] = Math.floor(totalStock / sizes.length);
+        });
+      }
+    }
+    
+    // Calculate inStock based on size-specific stock
+    const inStock = stock ? Object.values(stock).some(qty => qty > 0) : true;
+    
     const updateData: any = {
-      productCode: body.productCode || '',
       name: body.name,
       description: body.description || '',
       price: parseFloat(body.price),
@@ -86,9 +112,8 @@ export async function PUT(
       images: body.images || (body.image ? [body.image] : []),
       tags: body.tags || [],
       sizes: body.sizes || ['S', 'M', 'L', 'XL'],
-      colors: body.colors || [],
-      stock: body.stock !== undefined ? parseInt(body.stock) : undefined,
-      inStock: body.stock === undefined || parseInt(body.stock) > 0,
+      stock,
+      inStock,
       updatedAt: new Date().toISOString(),
     };
 

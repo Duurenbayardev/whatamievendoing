@@ -1,17 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Address } from '../../types';
 
-export default function AddressesPage() {
+function AddressesContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<any>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  
+  const returnUrl = searchParams.get('returnUrl') || null;
   const [formData, setFormData] = useState<Address>({
     id: '',
     fullName: '',
@@ -129,6 +132,12 @@ export default function AddressesPage() {
           district: '',
           notes: '',
         });
+        
+        // Redirect back to returnUrl if provided (e.g., back to cart/checkout)
+        if (returnUrl && !editingAddress) {
+          router.push(returnUrl);
+          return;
+        }
       } else {
         throw new Error('Failed to save address');
       }
@@ -447,5 +456,24 @@ export default function AddressesPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function AddressesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="flex justify-center gap-1 mb-4">
+            <div className="w-2 h-2 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 bg-gray-900 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+          <p className="text-gray-600 font-light">Ачааллаж байна...</p>
+        </div>
+      </div>
+    }>
+      <AddressesContent />
+    </Suspense>
   );
 }
