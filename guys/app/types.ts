@@ -46,6 +46,7 @@ export interface User {
   fullName: string;
   phone: string;
   addresses: Address[];
+  primaryAddress?: Address; // Primary address for checkout
   orders: string[]; // Order IDs
   createdAt: string;
   updatedAt: string;

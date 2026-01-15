@@ -121,6 +121,19 @@ function SidebarContent({ isOpen, onClose }: SidebarProps) {
                   Миний захиалгууд
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/account"
+                  onClick={onClose}
+                  className={`block px-6 py-4 text-lg font-light tracking-wider transition-all duration-300 ${
+                    pathname?.startsWith('/account')
+                      ? 'text-gray-900 border-l-2 border-gray-900 pl-4'
+                      : 'text-gray-600 hover:text-gray-900 hover:pl-6'
+                  }`}
+                >
+                  {isLoggedIn ? 'Миний бүртгэл' : 'Нэвтрэх'}
+                </Link>
+              </li>
             </ul>
           </nav>
 
