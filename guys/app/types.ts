@@ -6,10 +6,24 @@ export interface Product {
   price: number;
   originalPrice?: number;
   image: string;
+  images?: string[]; // Multiple images for gallery
   tags: string[];
   sizes: string[];
   colors: string[];
+  stock?: number; // Stock quantity
+  inStock?: boolean; // Stock status
   createdAt: string;
+}
+
+export interface CartItem {
+  productId: string;
+  productName: string;
+  productCode?: string;
+  productImage: string;
+  price: number;
+  size: string;
+  color?: string;
+  quantity: number;
 }
 
 export interface Address {
@@ -31,6 +45,7 @@ export interface Order {
   productPrice: number;
   productImage: string;
   productCode?: string;
+  quantity?: number; // Quantity ordered
   fullName: string;
   phone: string;
   address: string;
@@ -46,6 +61,7 @@ export interface User {
   fullName: string;
   phone: string;
   addresses: Address[];
+  primaryAddress?: Address; // Primary address for checkout
   orders: string[]; // Order IDs
   createdAt: string;
   updatedAt: string;

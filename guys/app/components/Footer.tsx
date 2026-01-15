@@ -38,8 +38,9 @@ export default function Footer() {
           </div>
           <div>
             <h4 className="text-sm font-light text-gray-900 mb-6 tracking-widest uppercase">Холбоо барих</h4>
-            <p className="text-sm text-gray-600 font-light mb-2">info@guysshop.com</p>
-            <p className="text-sm text-gray-600 font-light">+1 (555) 123-4567</p>
+            <p className="text-sm text-gray-600 font-light mb-2">Утас: 99112233</p>
+            <p className="text-sm text-gray-600 font-light mb-2">Имэйл: guysshop@gmail.com</p>
+            <p className="text-sm text-gray-600 font-light">Facebook: @guysshop</p>
           </div>
         </div>
         <div className="mt-12 pt-8 border-t border-gray-200 text-center">

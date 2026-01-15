@@ -4,28 +4,35 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Product } from '../../types';
-import CheckoutForm from '../../components/CheckoutForm';
-import ThankYouScreen from '../../components/ThankYouScreen';
+import { useCart } from '../../contexts/CartContext';
 
 export default function ProductPage() {
   const params = useParams();
   const router = useRouter();
+  const { addToCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [showThankYou, setShowThankYou] = useState(false);
-  const [orderId, setOrderId] = useState<string>('');
   const [sizeError, setSizeError] = useState<string>('');
   const [colorError, setColorError] = useState<string>('');
+  const [addToCartSuccess, setAddToCartSuccess] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
     if (params.id) {
       fetchProduct(params.id as string);
     }
   }, [params.id]);
+
+  useEffect(() => {
+    // Check if product is in wishlist
+    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    setIsWishlisted(wishlist.includes(product?.id));
+  }, [product]);
 
   const fetchProduct = async (id: string) => {
     try {
@@ -47,21 +54,77 @@ export default function ProductPage() {
     }
   };
 
-  const handleBuy = () => {
+  const toggleWishlist = () => {
+    if (!product) return;
+    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    if (isWishlisted) {
+      const updated = wishlist.filter((id: string) => id !== product.id);
+      localStorage.setItem('wishlist', JSON.stringify(updated));
+      setIsWishlisted(false);
+    } else {
+      wishlist.push(product.id);
+      localStorage.setItem('wishlist', JSON.stringify(wishlist));
+      setIsWishlisted(true);
+    }
+  };
+
+  const handleAddToCart = () => {
+    if (!product) return;
+
     if (!selectedSize) {
       setSizeError('Хэмжээ сонгоно уу');
       setTimeout(() => setSizeError(''), 3000);
       return;
     }
-    if (product?.colors && product.colors.length > 0 && !selectedColor) {
+    if (product.colors && product.colors.length > 0 && !selectedColor) {
       setColorError('Өнгө сонгоно уу');
       setTimeout(() => setColorError(''), 3000);
       return;
     }
+
+    // Check stock
+    if (product.stock !== undefined && product.stock <= 0) {
+      setSizeError('Бүтээгдэхүүн дууссан байна');
+      setTimeout(() => setSizeError(''), 3000);
+      return;
+    }
+
+    // Check if quantity exceeds stock
+    if (product.stock !== undefined && quantity > product.stock) {
+      setSizeError(`Зөвхөн ${product.stock} ширхэг үлдсэн байна`);
+      setTimeout(() => setSizeError(''), 3000);
+      return;
+    }
+
     setSizeError('');
     setColorError('');
-    setShowCheckout(true);
+
+    addToCart({
+      productId: product.id,
+      productName: product.name,
+      productCode: product.productCode,
+      productImage: product.images && product.images.length > 0 ? product.images[0] : product.image,
+      price: product.price,
+      size: selectedSize,
+      color: selectedColor || undefined,
+      quantity: quantity,
+    });
+
+    setAddToCartSuccess(true);
+    setTimeout(() => setAddToCartSuccess(false), 3000);
   };
+
+  const getImages = () => {
+    if (!product) return [];
+    if (product.images && product.images.length > 0) {
+      return product.images;
+    }
+    return [product.image];
+  };
+
+  const images = getImages();
+  const isInStock = product?.stock === undefined || product.stock > 0;
+  const stockStatus = product?.stock !== undefined ? product.stock : null;
 
   if (loading) {
     return (
@@ -112,8 +175,10 @@ export default function ProductPage() {
 
       <main className="max-w-7xl mx-auto px-6 lg:px-12 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-          <div className="bg-white border border-gray-200 overflow-hidden">
-            <div className="aspect-square relative bg-gray-50">
+          {/* Image Gallery */}
+          <div className="space-y-4">
+            {/* Main Image */}
+            <div className="bg-white border border-gray-200 overflow-hidden aspect-square relative">
               {!imageLoaded && (
                 <div className="absolute inset-0 bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 animate-pulse">
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -124,7 +189,7 @@ export default function ProductPage() {
                 </div>
               )}
               <Image
-                src={product.image}
+                src={images[selectedImageIndex]}
                 alt={product.name}
                 fill
                 className={`object-cover transition-opacity duration-500 ${
@@ -135,12 +200,67 @@ export default function ProductPage() {
                 onError={() => setImageLoaded(true)}
               />
             </div>
+
+            {/* Thumbnail Gallery */}
+            {images.length > 1 && (
+              <div className="grid grid-cols-4 gap-4">
+                {images.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setSelectedImageIndex(index);
+                      setImageLoaded(false);
+                    }}
+                    className={`aspect-square relative border-2 overflow-hidden transition-all ${
+                      selectedImageIndex === index
+                        ? 'border-gray-900'
+                        : 'border-gray-200 hover:border-gray-400'
+                    }`}
+                  >
+                    <Image
+                      src={img}
+                      alt={`${product.name} - ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 1024px) 25vw, 12.5vw"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
+          {/* Product Info */}
           <div className="space-y-8">
             <div>
-              <h1 className="text-4xl font-serif text-gray-900 mb-4 tracking-tight uppercase">{product.name}</h1>
-              <div className="flex items-center gap-4">
+              <div className="flex items-start justify-between mb-4">
+                <h1 className="text-4xl font-serif text-gray-900 tracking-tight uppercase flex-1">{product.name}</h1>
+                <button
+                  onClick={toggleWishlist}
+                  className={`ml-4 p-2 transition-colors ${
+                    isWishlisted
+                      ? 'text-red-500 hover:text-red-600'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                  aria-label={isWishlisted ? 'Хүслийн жагсаалтаас хасах' : 'Хүслийн жагсаалтад нэмэх'}
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill={isWishlisted ? 'currentColor' : 'none'}
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4 mb-4">
                 {product.originalPrice && product.originalPrice > product.price ? (
                   <>
                     <p className="text-3xl font-light text-gray-900 tracking-wider">₮{product.price.toLocaleString()}</p>
@@ -153,6 +273,19 @@ export default function ProductPage() {
                   <p className="text-3xl font-light text-gray-900 tracking-wider">₮{product.price.toLocaleString()}</p>
                 )}
               </div>
+
+              {/* Stock Status */}
+              {stockStatus !== null && (
+                <div className="mb-4">
+                  {isInStock ? (
+                    <p className="text-sm font-light text-green-600">
+                      Боломжтой ({stockStatus} ширхэг үлдсэн)
+                    </p>
+                  ) : (
+                    <p className="text-sm font-light text-red-600">Дууссан</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {product.description && (
@@ -192,7 +325,6 @@ export default function ProductPage() {
                 <h2 className="text-sm font-light text-gray-600 mb-4 tracking-widest uppercase">Өнгө</h2>
                 <div className="flex flex-wrap gap-3">
                   {product.colors.map((color) => {
-                    // Find color value from preset colors
                     const presetColors = [
                       { name: 'Хар', value: '#000000' },
                       { name: 'Цагаан', value: '#FFFFFF' },
@@ -258,45 +390,83 @@ export default function ProductPage() {
               </div>
             )}
 
-            <button
-              onClick={handleBuy}
-              className="w-full py-4 bg-gray-900 text-white text-sm font-light tracking-widest uppercase hover:bg-gray-800 transition-all duration-300"
-            >
-              Худалдаж авах
-            </button>
+            {/* Quantity Selector */}
+            <div>
+              <h2 className="text-sm font-light text-gray-600 mb-4 tracking-widest uppercase">Тоо ширхэг</h2>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 border border-gray-300">
+                  <button
+                    onClick={() => {
+                      if (quantity > 1) {
+                        setQuantity(quantity - 1);
+                      }
+                    }}
+                    disabled={quantity <= 1}
+                    className="w-12 h-12 flex items-center justify-center text-gray-900 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 12H4" />
+                    </svg>
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max={product.stock !== undefined ? product.stock : undefined}
+                    value={quantity}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      const maxQty = product.stock !== undefined ? product.stock : 999;
+                      setQuantity(Math.max(1, Math.min(val, maxQty)));
+                    }}
+                    className="w-16 text-center text-gray-900 font-light text-lg border-0 focus:outline-none focus:ring-0"
+                  />
+                  <button
+                    onClick={() => {
+                      const maxQty = product.stock !== undefined ? product.stock : 999;
+                      if (quantity < maxQty) {
+                        setQuantity(quantity + 1);
+                      }
+                    }}
+                    disabled={product.stock !== undefined && quantity >= product.stock}
+                    className="w-12 h-12 flex items-center justify-center text-gray-900 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                </div>
+                {product.stock !== undefined && (
+                  <p className="text-sm text-gray-600 font-light">
+                    (Хамгийн ихдээ {product.stock} ширхэг)
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Add to Cart Button */}
+            <div className="space-y-4">
+              {addToCartSuccess && (
+                <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded">
+                  <p className="text-sm font-light">Сагсанд нэмэгдлээ!</p>
+                </div>
+              )}
+              <button
+                onClick={handleAddToCart}
+                disabled={!isInStock}
+                className="w-full py-4 bg-gray-900 text-white text-sm font-light tracking-widest uppercase hover:bg-gray-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isInStock ? 'Сагсанд нэмэх' : 'Дууссан'}
+              </button>
+              <button
+                onClick={() => router.push('/cart')}
+                className="w-full py-4 bg-transparent text-gray-900 border-2 border-gray-900 text-sm font-light tracking-widest uppercase hover:bg-gray-50 transition-all duration-300"
+              >
+                Сагс руу очих
+              </button>
+            </div>
           </div>
         </div>
       </main>
-
-      {/* Checkout Form Modal */}
-      {product && (
-        <CheckoutForm
-          productName={product.name}
-          productSize={selectedSize}
-          productColor={selectedColor || undefined}
-          productPrice={product.price}
-          productImage={product.image}
-          productCode={product.productCode}
-          isOpen={showCheckout}
-          onClose={() => setShowCheckout(false)}
-          onComplete={(id) => {
-            setOrderId(id);
-            setShowThankYou(true);
-          }}
-        />
-      )}
-
-      {/* Thank You Screen */}
-      {product && showThankYou && (
-        <ThankYouScreen
-          orderId={orderId}
-          productName={product.name}
-          onClose={() => {
-            setShowThankYou(false);
-            router.push('/shop');
-          }}
-        />
-      )}
     </div>
   );
 }

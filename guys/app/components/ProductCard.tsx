@@ -41,7 +41,7 @@ export default function ProductCard({ product, index = 0, onImageLoad }: Product
             </div>
           )}
           <Image
-            src={product.image}
+            src={product.images && product.images.length > 0 ? product.images[0] : product.image}
             alt={product.name}
             fill
             className={`object-cover group-hover:scale-110 transition-all duration-700 ${
@@ -51,6 +51,20 @@ export default function ProductCard({ product, index = 0, onImageLoad }: Product
             onLoad={handleImageLoad}
             onError={() => setImageLoaded(true)}
           />
+          {/* Stock Status Badge */}
+          {product.stock !== undefined && (
+            <div className="absolute top-2 right-2">
+              {product.stock > 0 ? (
+                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-light tracking-widest uppercase">
+                  Боломжтой
+                </span>
+              ) : (
+                <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-light tracking-widest uppercase">
+                  Дууссан
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <div className="p-6">
           <h3 className="text-lg font-light text-gray-900 mb-2 tracking-wide uppercase">{product.name}</h3>

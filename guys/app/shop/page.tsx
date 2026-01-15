@@ -1,22 +1,28 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Product } from '../types';
 import ProductCard from '../components/ProductCard';
 import TagFilter from '../components/TagFilter';
 
 function ShopContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     fetchTags();
   }, []);
 
   useEffect(() => {
+    const page = parseInt(searchParams.get('page') || '1');
+    setCurrentPage(page);
     const query = searchParams.toString();
     fetchProducts(query);
   }, [searchParams]);
@@ -24,17 +30,33 @@ function ShopContent() {
   const fetchProducts = async (query: string = '') => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/products?${query}`);
+      // Add pagination to query if not present
+      const params = new URLSearchParams(query);
+      if (!params.has('page')) {
+        params.set('page', currentPage.toString());
+      }
+      if (!params.has('limit')) {
+        params.set('limit', '12');
+      }
+
+      const response = await fetch(`/api/products?${params.toString()}`);
       const data = await response.json();
       
-      // Data is already sorted by newest first from API, but ensure it's sorted
-      let filteredData = data.sort((a: Product, b: Product) => {
-        const dateA = new Date(a.createdAt || 0).getTime();
-        const dateB = new Date(b.createdAt || 0).getTime();
-        return dateB - dateA; // Newest first
-      });
-
-      // Filter by category
+      // Handle both old format (array) and new format (object with products and pagination)
+      let filteredData: Product[];
+      if (Array.isArray(data)) {
+        filteredData = data;
+        setTotalPages(1);
+        setTotal(data.length);
+      } else {
+        filteredData = data.products || [];
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotal(data.pagination.total);
+        }
+      }
+      
+      // Filter by category (client-side for now, can be moved to API later)
       const category = searchParams.get('category');
       if (category) {
         if (category === 'mens') {
@@ -46,14 +68,12 @@ function ShopContent() {
             p.tags.some(tag => tag.includes('Эмэгтэй') || tag.includes('эмэгтэй'))
           );
         } else if (category === 'newest') {
-          // Already sorted by newest, just ensure it's correct
           filteredData = filteredData.sort((a: Product, b: Product) => {
             const dateA = new Date(a.createdAt || 0).getTime();
             const dateB = new Date(b.createdAt || 0).getTime();
             return dateB - dateA;
           });
         } else if (category === 'onsale') {
-          // Include products with discounted price (originalPrice) or хямдрал tag
           filteredData = filteredData.filter((p: Product) => {
             const hasDiscountedPrice = p.originalPrice && p.originalPrice > p.price;
             const hasSaleTag = p.tags.some(tag => tag.includes('Хямдрал') || tag.includes('хямдрал'));
@@ -61,7 +81,7 @@ function ShopContent() {
           }).sort((a: Product, b: Product) => {
             const dateA = new Date(a.createdAt || 0).getTime();
             const dateB = new Date(b.createdAt || 0).getTime();
-            return dateB - dateA; // Keep newest first
+            return dateB - dateA;
           });
         }
       }
@@ -72,6 +92,13 @@ function ShopContent() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+    router.push(`/shop?${params.toString()}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const fetchTags = async () => {

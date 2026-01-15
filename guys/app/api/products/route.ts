@@ -11,6 +11,9 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search')?.toLowerCase();
     const tag = searchParams.get('tag');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '12');
+    const skip = (page - 1) * limit;
     
     // Build query
     let query: any = {};
@@ -28,10 +31,15 @@ export async function GET(request: NextRequest) {
       query.tags = tag;
     }
     
-    // Fetch products and sort by newest first
+    // Get total count for pagination
+    const total = await collection.countDocuments(query);
+    
+    // Fetch products with pagination and sort by newest first
     const products = await collection
       .find(query)
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .toArray();
     
     // Convert ObjectId to string for JSON response
@@ -39,9 +47,25 @@ export async function GET(request: NextRequest) {
       ...product,
       id: product._id.toString(),
       _id: undefined,
+      // Ensure inStock is calculated
+      inStock: product.stock === undefined || product.stock > 0,
     }));
     
-    return NextResponse.json(formattedProducts);
+    // Return paginated response if page/limit specified, otherwise return all (backward compatibility)
+    if (searchParams.has('page') || searchParams.has('limit')) {
+      return NextResponse.json({
+        products: formattedProducts,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
+    } else {
+      // Backward compatibility - return array directly
+      return NextResponse.json(formattedProducts);
+    }
   } catch (error) {
     console.error('Error fetching products:', error);
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
@@ -64,9 +88,12 @@ export async function POST(request: NextRequest) {
         originalPrice: parseFloat(body.originalPrice),
       }),
       image: body.image,
+      images: body.images || (body.image ? [body.image] : []),
       tags: body.tags || [],
       sizes: body.sizes || ['S', 'M', 'L', 'XL'],
       colors: body.colors || [],
+      stock: body.stock !== undefined ? parseInt(body.stock) : undefined,
+      inStock: body.stock === undefined || parseInt(body.stock) > 0,
       createdAt: new Date().toISOString(),
     };
     

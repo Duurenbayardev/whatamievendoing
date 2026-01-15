@@ -79,7 +79,9 @@ export default function AdminPage() {
     image: '',
     sizes: 'S,M,L,XL',
     colors: '',
+    stock: '',
   });
+  const [images, setImages] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -244,8 +246,9 @@ export default function AdminPage() {
       return;
     }
 
-    if (!formData.image.trim()) {
-      setMessage('Зургийн URL эсвэл зураг оруулна уу.');
+    // Check if at least one image exists (either in images array or single image field)
+    if (images.length === 0 && !formData.image.trim()) {
+      setMessage('Дор хаяж нэг зураг оруулна уу.');
       setSubmitLoading(false);
       return;
     }
@@ -257,6 +260,11 @@ export default function AdminPage() {
     }
 
     try {
+      // Combine images: use images array if available, otherwise use single image, or combine both
+      const allImages = images.length > 0 
+        ? images 
+        : (formData.image ? [formData.image] : []);
+      
       const productData = {
         productCode: formData.productCode,
         name: formData.name,
@@ -265,10 +273,12 @@ export default function AdminPage() {
         ...(hasDiscount && formData.originalPrice && parseFloat(formData.originalPrice) > parseFloat(formData.price) && {
           originalPrice: parseFloat(formData.originalPrice),
         }),
-        image: formData.image,
+        image: allImages[0] || formData.image, // First image as main image for backward compatibility
+        images: allImages, // Multiple images array
         tags: selectedTags,
         sizes: formData.sizes.split(',').map((size) => size.trim()).filter(Boolean),
         colors: selectedColors.length > 0 ? selectedColors : (formData.colors ? formData.colors.split(',').map((color) => color.trim()).filter(Boolean) : []),
+        stock: formData.stock ? parseInt(formData.stock) : undefined, // Stock quantity
       };
 
       if (editingProduct) {
@@ -322,6 +332,13 @@ export default function AdminPage() {
     setSelectedColors(product.colors || []);
     const hasOriginalPrice = product.originalPrice && product.originalPrice > product.price;
     setHasDiscount(hasOriginalPrice || false);
+    
+    // Set images array if available, otherwise use single image
+    const productImages = product.images && product.images.length > 0 
+      ? product.images 
+      : (product.image ? [product.image] : []);
+    
+    setImages(productImages);
     setFormData({
       productCode: product.productCode || '',
       name: product.name,
@@ -331,6 +348,7 @@ export default function AdminPage() {
       image: product.image,
       sizes: product.sizes.join(', '),
       colors: product.colors ? product.colors.join(', ') : '',
+      stock: product.stock !== undefined ? product.stock.toString() : '',
     });
     setImagePreview(product.image);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -365,7 +383,9 @@ export default function AdminPage() {
       image: '',
       sizes: 'S,M,L,XL',
       colors: '',
+      stock: '',
     });
+    setImages([]);
     setSelectedTags([]);
     setSelectedColors([]);
     setNewTagInput('');
@@ -470,58 +490,73 @@ export default function AdminPage() {
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      setMessage('Буруу файлын төрөл. Зөвхөн JPEG, PNG, WebP, GIF зургуудыг зөвшөөрнө.');
-      return;
-    }
-
-    // Validate file size (max 5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      setMessage('Файлын хэмжээ хэт том. Хамгийн ихдээ 5MB байх ёстой.');
-      return;
+
+    // Validate all files first
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!validTypes.includes(file.type)) {
+        setMessage(`Файл "${file.name}": Буруу файлын төрөл. Зөвхөн JPEG, PNG, WebP, GIF зургуудыг зөвшөөрнө.`);
+        e.target.value = '';
+        return;
+      }
+      if (file.size > maxSize) {
+        setMessage(`Файл "${file.name}": Файлын хэмжээ хэт том. Хамгийн ихдээ 5MB байх ёстой.`);
+        e.target.value = '';
+        return;
+      }
     }
 
     setUploadingImage(true);
     setMessage('');
 
+    // Upload files sequentially
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('file', file);
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (response.ok && data.url) {
-        // Use functional update to ensure we have the latest state
-        setFormData(prev => ({
-          ...prev,
-          image: data.url,
-        }));
-        setImagePreview(data.url);
-        setMessage('Зураг амжилттай байршууллаа!');
-        setTimeout(() => setMessage(''), 3000);
-      } else {
-        // Translate common error messages
-        let errorMessage = 'Зураг байршуулахад алдаа гарлаа.';
-        if (data.error?.includes('Invalid file type')) {
-          errorMessage = 'Буруу файлын төрөл. Зөвхөн JPEG, PNG, WebP, GIF зургуудыг зөвшөөрнө.';
-        } else if (data.error?.includes('File size too large')) {
-          errorMessage = 'Файлын хэмжээ хэт том. Хамгийн ихдээ 5MB байх ёстой.';
-        } else if (data.error?.includes('No file provided')) {
-          errorMessage = 'Файл сонгоогүй байна.';
+        if (response.ok && data.url) {
+          // Add to images array
+          setImages(prev => {
+            const newImages = [...prev, data.url];
+            // Also set as main image if it's the first one
+            if (newImages.length === 1) {
+              setFormData(prevForm => ({
+                ...prevForm,
+                image: data.url,
+              }));
+              setImagePreview(data.url);
+            }
+            return newImages;
+          });
+        } else {
+          let errorMessage = `Файл "${file.name}": Зураг байршуулахад алдаа гарлаа.`;
+          if (data.error?.includes('Invalid file type')) {
+            errorMessage = `Файл "${file.name}": Буруу файлын төрөл.`;
+          } else if (data.error?.includes('File size too large')) {
+            errorMessage = `Файл "${file.name}": Файлын хэмжээ хэт том.`;
+          }
+          setMessage(errorMessage);
+          setTimeout(() => setMessage(''), 5000);
         }
-        setMessage(errorMessage);
-        setTimeout(() => setMessage(''), 5000);
+      }
+
+      if (files.length > 0) {
+        setMessage(`${files.length} зураг амжилттай байршууллаа!`);
+        setTimeout(() => setMessage(''), 3000);
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -879,7 +914,7 @@ export default function AdminPage() {
 
             <div>
               <label className="block text-xs font-light text-gray-600 mb-3 tracking-widest uppercase">
-                Зураг *
+                Зураг * (Олон зураг нэмэх боломжтой)
               </label>
               
               {/* File Upload */}
@@ -910,6 +945,7 @@ export default function AdminPage() {
                           <span className="font-medium">Товшиж зураг сонгоно уу</span> эсвэл чирж тавина уу
                         </p>
                         <p className="text-xs text-gray-500 font-light">PNG, JPG, GIF эсвэл WEBP (Хамгийн ихдээ 5MB)</p>
+                        <p className="text-xs text-gray-400 font-light mt-1">Олон зураг нэмэх боломжтой</p>
                       </>
                     )}
                   </div>
@@ -920,28 +956,108 @@ export default function AdminPage() {
                     accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
                     onChange={handleImageUpload}
                     disabled={uploadingImage}
+                    multiple
                   />
                 </label>
               </div>
 
               {/* URL Input (Alternative) */}
-              <div>
-                <label htmlFor="image" className="block text-xs font-light text-gray-500 mb-2 tracking-widest uppercase">
-                  Эсвэл зургийн URL оруулна уу
+              <div className="mb-4">
+                <label htmlFor="image-url" className="block text-xs font-light text-gray-500 mb-2 tracking-widest uppercase">
+                  Эсвэл зургийн URL нэмэх
                 </label>
-                <input
-                  type="text"
-                  id="image"
-                  name="image"
-                  value={formData.image || ''}
-                  onChange={handleChange}
-                  placeholder="https://example.com/image.jpg эсвэл зураг байршуулна уу"
-                  className="w-full px-4 py-3 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 transition-colors"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    id="image-url"
+                    name="imageUrl"
+                    placeholder="https://example.com/image.jpg"
+                    className="flex-1 px-4 py-3 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 transition-colors"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const url = (e.target as HTMLInputElement).value.trim();
+                        if (url) {
+                          setImages(prev => [...prev, url]);
+                          if (images.length === 0) {
+                            setFormData(prev => ({ ...prev, image: url }));
+                            setImagePreview(url);
+                          }
+                          (e.target as HTMLInputElement).value = '';
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const input = document.getElementById('image-url') as HTMLInputElement;
+                      const url = input.value.trim();
+                      if (url) {
+                        setImages(prev => [...prev, url]);
+                        if (images.length === 0) {
+                          setFormData(prev => ({ ...prev, image: url }));
+                          setImagePreview(url);
+                        }
+                        input.value = '';
+                      }
+                    }}
+                    className="px-4 py-3 bg-gray-900 text-white text-sm font-light tracking-widest uppercase hover:bg-gray-800 transition-colors"
+                  >
+                    Нэмэх
+                  </button>
+                </div>
               </div>
 
-              {/* Image Preview */}
-              {formData.image && (
+              {/* Multiple Images Preview */}
+              {images.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-light text-gray-600 mb-3 tracking-widest uppercase">
+                    Зургууд ({images.length}):
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {images.map((img, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={img}
+                          alt={`Зураг ${index + 1}`}
+                          className="w-full h-32 object-cover border border-gray-300 rounded"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                        {index === 0 && (
+                          <span className="absolute top-1 left-1 bg-gray-900 text-white text-xs px-2 py-1 font-light">
+                            Үндсэн
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newImages = images.filter((_, i) => i !== index);
+                            setImages(newImages);
+                            if (index === 0 && newImages.length > 0) {
+                              setFormData(prev => ({ ...prev, image: newImages[0] }));
+                              setImagePreview(newImages[0]);
+                            } else if (newImages.length === 0) {
+                              setFormData(prev => ({ ...prev, image: '' }));
+                              setImagePreview('');
+                            }
+                          }}
+                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-700 transition-colors opacity-0 group-hover:opacity-100"
+                          title="Зураг устгах"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Legacy single image preview (for backward compatibility) */}
+              {images.length === 0 && formData.image && (
                 <div className="mt-4">
                   <p className="text-xs font-light text-gray-600 mb-2 tracking-widest uppercase">Урьдчилан харах:</p>
                   <div className="relative inline-block">
@@ -1188,6 +1304,26 @@ export default function AdminPage() {
               )}
             </div>
 
+            <div>
+              <label htmlFor="stock" className="block text-xs font-light text-gray-600 mb-3 tracking-widest uppercase">
+                Барааны тоо ширхэг (Нөөц)
+              </label>
+              <input
+                type="number"
+                id="stock"
+                name="stock"
+                value={formData.stock || ''}
+                onChange={handleChange}
+                min="0"
+                step="1"
+                placeholder="Жишээ: 10 (хоосон үлдээвэл хязгааргүй гэж тооцно)"
+                className="w-full px-4 py-3 bg-white border border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 transition-colors"
+              />
+              <p className="mt-2 text-xs text-gray-500 font-light">
+                Барааны тоо ширхэгийг оруулна уу. Хоосон үлдээвэл нөөц хязгааргүй гэж тооцно.
+              </p>
+            </div>
+
             {message && (
               <div
                 className={`p-4 border ${
@@ -1246,7 +1382,15 @@ export default function AdminPage() {
                         {order.productColor && (
                           <p className="text-sm text-gray-600 font-light">Өнгө: {order.productColor}</p>
                         )}
-                        <p className="text-lg font-light text-gray-900 mt-2">₮{order.productPrice.toLocaleString()}</p>
+                        <p className="text-sm text-gray-600 font-light">Тоо ширхэг: {order.quantity || 1}</p>
+                        <p className="text-lg font-light text-gray-900 mt-2">
+                          ₮{((order.quantity || 1) * order.productPrice).toLocaleString()}
+                          {order.quantity && order.quantity > 1 && (
+                            <span className="text-sm text-gray-500 font-light ml-2">
+                              ({order.quantity} × ₮{order.productPrice.toLocaleString()})
+                            </span>
+                          )}
+                        </p>
                       </div>
 
                       {/* Customer Info */}

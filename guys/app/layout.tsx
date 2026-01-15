@@ -3,6 +3,7 @@ import { PT_Serif, Tinos } from "next/font/google";
 import "./globals.css";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import { CartProvider } from "./contexts/CartContext";
 
 const ptSerif = PT_Serif({
   variable: "--font-pt-serif",
@@ -32,13 +33,15 @@ export default function RootLayout({
         className={`${ptSerif.variable} ${tinos.variable} antialiased flex flex-col min-h-screen`}
         style={{ fontFamily: 'var(--font-pt-serif), serif' }}
       >
-        <Header />
-        <div className="flex flex-1">
-          <div className="flex-1 w-full">
-            {children}
+        <CartProvider>
+          <Header />
+          <div className="flex flex-1">
+            <div className="flex-1 w-full">
+              {children}
+            </div>
           </div>
-        </div>
-        <Footer />
+          <Footer />
+        </CartProvider>
       </body>
     </html>
   );

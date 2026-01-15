@@ -13,6 +13,7 @@ interface Order {
   productPrice: number;
   productImage: string;
   productCode?: string;
+  quantity?: number;
   fullName: string;
   phone: string;
   address: string;
@@ -227,7 +228,15 @@ export default function OrdersPage() {
                       {order.productColor && (
                         <p className="text-sm text-gray-600 font-light">Өнгө: {order.productColor}</p>
                       )}
-                      <p className="text-lg font-light text-gray-900 mt-2">₮{order.productPrice.toLocaleString()}</p>
+                      <p className="text-sm text-gray-600 font-light">Тоо ширхэг: {order.quantity || 1}</p>
+                      <p className="text-lg font-light text-gray-900 mt-2">
+                        ₮{((order.quantity || 1) * order.productPrice).toLocaleString()}
+                        {order.quantity && order.quantity > 1 && (
+                          <span className="text-sm text-gray-500 font-light ml-2">
+                            ({order.quantity} × ₮{order.productPrice.toLocaleString()})
+                          </span>
+                        )}
+                      </p>
                     </div>
                   </div>
 

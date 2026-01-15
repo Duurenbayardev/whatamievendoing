@@ -35,6 +35,8 @@ export async function GET(
       ...product,
       id: product._id ? product._id.toString() : product.id,
       _id: undefined,
+      // Ensure inStock is calculated
+      inStock: product.stock === undefined || product.stock > 0,
     };
     
     return NextResponse.json(formattedProduct);
@@ -81,9 +83,12 @@ export async function PUT(
       description: body.description || '',
       price: parseFloat(body.price),
       image: body.image,
+      images: body.images || (body.image ? [body.image] : []),
       tags: body.tags || [],
       sizes: body.sizes || ['S', 'M', 'L', 'XL'],
       colors: body.colors || [],
+      stock: body.stock !== undefined ? parseInt(body.stock) : undefined,
+      inStock: body.stock === undefined || parseInt(body.stock) > 0,
       updatedAt: new Date().toISOString(),
     };
 
