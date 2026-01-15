@@ -54,15 +54,34 @@ export default function ProductCard({ product, index = 0, onImageLoad }: Product
           {/* Stock Status Badge */}
           {product.stock !== undefined && (
             <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2">
-              {product.stock > 0 ? (
-                <span className="px-1.5 py-0.5 md:px-2 md:py-1 bg-green-100 text-green-700 text-[10px] md:text-xs font-light tracking-widest uppercase">
-                  Боломжтой
-                </span>
-              ) : (
-                <span className="px-1.5 py-0.5 md:px-2 md:py-1 bg-red-100 text-red-700 text-[10px] md:text-xs font-light tracking-widest uppercase">
-                  Дууссан
-                </span>
-              )}
+              {(() => {
+                if (typeof product.stock === 'object' && product.stock !== null) {
+                  // Size-specific stock - check if any size has stock
+                  const hasStock = Object.values(product.stock).some(qty => qty > 0);
+                  return hasStock ? (
+                    <span className="px-1.5 py-0.5 md:px-2 md:py-1 bg-green-100 text-green-700 text-[10px] md:text-xs font-light tracking-widest uppercase">
+                      Боломжтой
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 md:px-2 md:py-1 bg-red-100 text-red-700 text-[10px] md:text-xs font-light tracking-widest uppercase">
+                      Дууссан
+                    </span>
+                  );
+                }
+                // Legacy format - number
+                if (typeof product.stock === 'number') {
+                  return product.stock > 0 ? (
+                    <span className="px-1.5 py-0.5 md:px-2 md:py-1 bg-green-100 text-green-700 text-[10px] md:text-xs font-light tracking-widest uppercase">
+                      Боломжтой
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 md:px-2 md:py-1 bg-red-100 text-red-700 text-[10px] md:text-xs font-light tracking-widest uppercase">
+                      Дууссан
+                    </span>
+                  );
+                }
+                return null;
+              })()}
             </div>
           )}
         </div>

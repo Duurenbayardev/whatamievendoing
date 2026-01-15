@@ -342,11 +342,17 @@ export default function AdminPage() {
       originalPrice: product.originalPrice ? product.originalPrice.toString() : '',
       image: product.image,
       sizes: product.sizes.join(', '),
-      stock: product.stock !== undefined 
-        ? (typeof product.stock === 'object' 
-          ? Object.entries(product.stock).map(([size, qty]) => `${size}:${qty}`).join(',')
-          : product.stock.toString())
-        : '',
+      stock: (() => {
+        if (product.stock === undefined) return '';
+        const stock = product.stock as Record<string, number> | number;
+        if (typeof stock === 'object' && stock !== null && !Array.isArray(stock)) {
+          return Object.entries(stock).map(([size, qty]) => `${size}:${qty}`).join(',');
+        }
+        if (typeof stock === 'number') {
+          return stock.toString();
+        }
+        return '';
+      })(),
     });
     setImagePreview(product.image);
     window.scrollTo({ top: 0, behavior: 'smooth' });
