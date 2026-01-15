@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import SearchBar from './SearchBar';
 
@@ -73,8 +74,15 @@ function SidebarContent({ isOpen, onClose }: SidebarProps) {
           {/* Header */}
           <div className="p-8 border-b border-gray-200">
             <div className="flex items-center justify-between mb-6">
-              <Link href="/" className="text-3xl font-serif text-gray-900 tracking-wider" onClick={onClose}>
-                GUYS SHOP
+              <Link href="/" onClick={onClose} className="flex items-center">
+                <Image
+                  src="/logo.png"
+                  alt="GUYS SHOP"
+                  width={140}
+                  height={45}
+                  className="h-11 w-auto object-contain"
+                  priority
+                />
               </Link>
               <button
                 onClick={onClose}

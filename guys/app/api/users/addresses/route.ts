@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../../lib/mongodb';
-import { ObjectId } from 'mongodb';
+import { ObjectId, UpdateFilter } from 'mongodb';
 
 // POST - Add new address
 export async function POST(request: NextRequest) {
@@ -126,9 +126,9 @@ export async function DELETE(request: NextRequest) {
     await usersCollection.updateOne(
       { phone },
       { 
-        $pull: { addresses: { id: addressId } },
+        $pull: { addresses: { id: addressId } } as any,
         $set: { updatedAt: new Date().toISOString() }
-      }
+      } as UpdateFilter<any>
     );
     
     const updatedUser = await usersCollection.findOne({ phone });

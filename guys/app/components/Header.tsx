@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import { useCart } from '../contexts/CartContext';
@@ -44,8 +45,15 @@ export default function Header() {
               </svg>
             </button>
 
-            <Link href="/" className="text-2xl font-serif text-gray-900 tracking-wider">
-              GUYS SHOP
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/logo.png"
+                alt="GUYS SHOP"
+                width={120}
+                height={40}
+                className="h-10 w-auto object-contain"
+                priority
+              />
             </Link>
 
             <div className="flex items-center gap-6">
